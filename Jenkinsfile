@@ -1,15 +1,31 @@
-pipeline {
+pipeline{
   agent any
-  options {
-    buildDiscarder(logRotator(numToKeepStr: '5'))
-  }
-  stages {
-    stage('Scan') {
-      steps {
-        withSonarQubeEnv(installationName: 'sonarjenkins') { 
-          sh './mvnw clean org.sonarsource.scanner.maven:sonar-maven-plugin:3.9.0.2155:sonar'
+  stages{
+    stage('sonar quality status'){
+      agent{
+        docker {
+          image 'maven'
+          args '-u root'
         }
       }
+      steps{
+        script{
+          withSonarQubeEnv(credentialsId: 'sonar-token') {
+              sh 'mvn clean package sonar:sonar'
+          }
+        }
+      }
+   }
+    stage('Quality Gate'){
+      steps{
+        script{
+          waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+        }
+      }
+     
     }
-  }
+ }
 }
+    
+    
+    
